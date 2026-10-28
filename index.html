@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechBot OS - Controle de Formatação, Manutenção & WhatsApp</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #263449;
+      --border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --whatsapp: #25d366;
+      --whatsapp-dark: #075e54;
+      --whatsapp-chat-bg: #0b141a;
+      --whatsapp-msg-in: #202c33;
+      --whatsapp-msg-out: #005c4b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: #111c35; border-bottom: 1px solid var(--border); padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--whatsapp));
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .brand h1 { font-size: 1.18rem; font-weight: 700; }
+    .brand p { font-size: 0.8rem; color: var(--text-muted); }
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      border: 1px solid var(--border); border-radius: 8px; padding: 8px 13px;
+      font-size: 0.83rem; font-weight: 600; cursor: pointer; color: #fff; background: var(--bg-card);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: var(--bg-card-hover); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); }
+    .btn-whatsapp { background: #16a34a; border-color: #22c55e; }
+    .btn-sm { padding: 4px 8px; font-size: 0.74rem; border-radius: 6px; }
+
+    .workspace {
+      display: grid; grid-template-columns: 1fr 410px; gap: 20px; padding: 20px;
+      flex: 1; max-width: 1720px; width: 100%; margin: 0 auto;
+    }
+    @media (max-width: 1150px) { .workspace { grid-template-columns: 1fr; } }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-card span.label { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; }
+    .stat-card strong.value { font-size: 1.55rem; font-weight: 700; }
+
+    .toolbar {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+    }
+    .input, .select {
+      background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main);
+      padding: 8px 12px; border-radius: 8px; font-size: 0.84rem; outline: none;
+    }
+
+    .kanban-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 14px; }
+    .kanban-col {
+      background: rgba(30, 41, 59, 0.55); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 460px;
+    }
+    .kanban-col-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 8px; border-bottom: 1px solid var(--border); font-size: 0.9rem; font-weight: 700;
+    }
+    .count-badge { background: var(--bg-dark); padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; color: var(--text-muted); }
+
+    .task-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .task-top { display: flex; justify-content: space-between; align-items: center; }
+    .os-code { font-weight: 700; font-size: 0.8rem; color: #60a5fa; background: rgba(59,130,246,0.12); padding: 2px 8px; border-radius: 6px; }
+    .badge { font-size: 0.7rem; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
+    .prio-Urgente { background: rgba(239,68,68,0.2); color: #f87171; }
+    .prio-Alta { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .prio-Média { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .prio-Baixa { background: rgba(148,163,184,0.2); color: #cbd5e1; }
+    .task-type { font-size: 0.76rem; font-weight: 600; color: #a7f3d0; }
+    .task-title { font-size: 0.92rem; font-weight: 700; }
+    .task-meta { font-size: 0.77rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; }
+    .task-desc { font-size: 0.78rem; color: #cbd5e1; background: rgba(15,23,42,0.55); padding: 7px 9px; border-radius: 6px; }
+
+    .checklist-box {
+      background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px; display: flex; flex-direction: column; gap: 5px;
+    }
+    .checklist-header { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+    .progress-bar { height: 5px; background: #0f172a; border-radius: 999px; overflow: hidden; margin-bottom: 3px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease; }
+    .check-item { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: #e2e8f0; cursor: pointer; }
+    .check-item input { cursor: pointer; accent-color: #10b981; }
+    .check-item.done { text-decoration: line-through; color: #64748b; }
+
+    .task-actions { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+    .task-actions select { flex: 1; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; font-size: 0.74rem; }
+
+    /* WHATSAPP PANEL */
+    .whatsapp-panel {
+      background: var(--whatsapp-chat-bg); border: 1px solid var(--border); border-radius: 14px;
+      display: flex; flex-direction: column; height: calc(100vh - 115px); min-height: 600px; overflow: hidden;
+      position: sticky; top: 20px;
+    }
+    .wa-header { background: var(--whatsapp-dark); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .wa-bot-info { display: flex; align-items: center; gap: 10px; }
+    .wa-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--whatsapp); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .wa-bot-info h3 { font-size: 0.92rem; color: #fff; }
+    .wa-bot-info span { font-size: 0.72rem; color: #bbf7d0; }
+    .wa-quick-chips { background: #162127; padding: 8px 10px; display: flex; gap: 6px; overflow-x: auto; border-bottom: 1px solid #222e35; }
+    .chip { background: #202c33; color: #d1d7db; border: 1px solid #374248; padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; white-space: nowrap; cursor: pointer; }
+    .wa-messages { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 88%; padding: 9px 12px; border-radius: 10px; font-size: 0.82rem; line-height: 1.4; white-space: pre-wrap; }
+    .msg-bot { background: var(--whatsapp-msg-in); color: #e9edef; align-self: flex-start; }
+    .msg-user { background: var(--whatsapp-msg-out); color: #e9edef; align-self: flex-end; }
+    .wa-input-bar { background: #202c33; padding: 10px; display: flex; gap: 8px; }
+    .wa-input-bar input { flex: 1; background: #2a3942; border: none; color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; }
+    .wa-send-btn { background: var(--whatsapp); color: #052e16; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(2,6,23,0.8); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+    .modal-backdrop.active { display: flex; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; max-width: 560px; width: 100%; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 92vh; overflow-y: auto; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-field { display: flex; flex-direction: column; gap: 5px; }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-field label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+
+    #printReceiptArea { display: none; }
+    @media print {
+      body * { visibility: hidden; }
+      #printReceiptArea, #printReceiptArea * { visibility: visible; }
+      #printReceiptArea {
+        display: block !important; position: absolute; left: 0; top: 0; width: 100%;
+        background: #fff; color: #000; padding: 24px; font-family: Arial, sans-serif;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🔧</div>
+      <div>
+        <h1>TechBot OS — Formatação, Manutenção & Bot WhatsApp</h1>
+        <p>Notificação Ativa no WhatsApp • Checklist de Bancada • Impressão de OS</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="triggerBotCommand('6')">⏰ Disparar Lembrete</button>
+      <button class="btn btn-whatsapp" onclick="triggerBotCommand('5')">📊 Resumo Diário WhatsApp</button>
+      <button class="btn btn-primary" onclick="openNewTaskModal()">➕ Nova Ordem de Serviço</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section>
+      <div class="stats-grid">
+        <div class="stat-card"><span class="label">Total Geral</span><strong class="value" id="statTotal">0</strong></div>
+        <div class="stat-card"><span class="label">⏳ Pendentes</span><strong class="value" style="color:#fbbf24" id="statPendentes">0</strong></div>
+        <div class="stat-card"><span class="label">🔧 Em Bancada</span><strong class="value" style="color:#38bdf8" id="statBancada">0</strong></div>
+        <div class="stat-card"><span class="label">📦 Aguard. Peça</span><strong class="value" style="color:#f472b6" id="statPeca">0</strong></div>
+        <div class="stat-card"><span class="label">✅ Concluídos</span><strong class="value" style="color:#4ade80" id="statConcluidos">0</strong></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="searchInput" class="input" placeholder="🔍 Buscar por OS, patrimônio, equipamento, técnico ou setor..." oninput="renderBoard()" style="flex:1;min-width:220px;" />
+        <select id="filterTipo" class="select" onchange="renderBoard()">
+          <option value="">Todos os Serviços</option>
+          <option value="Formatação">💿 Formatação</option>
+          <option value="Manutenção Preventiva">🧹 Manutenção Preventiva</option>
+          <option value="Troca de Peça">🔩 Troca de Peça</option>
+          <option value="Reparo de Hardware">⚡ Reparo de Hardware</option>
+          <option value="Rede / Impressora">🌐 Rede / Impressora</option>
+        </select>
+        <select id="filterTecnico" class="select" onchange="renderBoard()">
+          <option value="">👨‍💻 Todos os Técnicos</option>
+        </select>
+      </div>
+
+      <div class="kanban-grid">
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span>⏳ Pendente</span><span class="count-badge" id="countPendente">0</span></div>
+          <div id="colPendente" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span>🔧 Em Bancada</span><span class="count-badge" id="countBancada">0</span></div>
+          <div id="colBancada" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span>📦 Aguardando Peça</span><span class="count-badge" id="countPeca">0</span></div>
+          <div id="colPeca" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header"><span>✅ Concluído</span><span class="count-badge" id="countConcluido">0</span></div>
+          <div id="colConcluido" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="whatsapp-panel">
+      <div class="wa-header">
+        <div class="wa-bot-info">
+          <div class="wa-avatar">🤖</div>
+          <div>
+            <h3>Bot Bancada TI (WhatsApp)</h3>
+            <span id="serverSyncBadge">Online • Sincronizado</span>
+          </div>
+        </div>
+        <button class="btn btn-sm" onclick="clearChat()">Limpar</button>
+      </div>
+      <div class="wa-quick-chips">
+        <button class="chip" onclick="triggerBotCommand('menu')">📋 Menu</button>
+        <button class="chip" onclick="triggerBotCommand('1')">➕ 1. Nova OS</button>
+        <button class="chip" onclick="triggerBotCommand('2')">⏳ 2. Fila</button>
+        <button class="chip" onclick="triggerBotCommand('/check 101')">☑️ /check 101</button>
+        <button class="chip" onclick="triggerBotCommand('5')">📊 5. Resumo</button>
+      </div>
+      <div class="wa-messages" id="waMessages"></div>
+      <form class="wa-input-bar" onsubmit="handleChatSubmit(event)">
+        <input type="text" id="waInput" placeholder="Ex: '/avisar 101 11999998888', '/assumir 102 Carlos'..." autocomplete="off" />
+        <button type="submit" class="wa-send-btn">Enviar</button>
+      </form>
+    </aside>
+  </main>
+
+  <!-- MODAL NOVA / EDITAR OS -->
+  <div class="modal-backdrop" id="taskModal">
+    <div class="modal">
+      <h3 id="modalTitle">Nova Ordem de Serviço</h3>
+      <form onsubmit="saveTaskFromModal(event)" class="form-grid">
+        <input type="hidden" id="editTaskId" />
+        <div class="form-field">
+          <label>Tipo de Serviço</label>
+          <select id="fTipo" class="select">
+            <option value="Formatação">Formatação</option>
+            <option value="Manutenção Preventiva">Manutenção Preventiva</option>
+            <option value="Troca de Peça">Troca de Peça</option>
+            <option value="Reparo de Hardware">Reparo de Hardware</option>
+            <option value="Rede / Impressora">Rede / Impressora</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Prioridade</label>
+          <select id="fPrioridade" class="select">
+            <option value="Média">Média</option>
+            <option value="Alta">Alta</option>
+            <option value="Urgente">Urgente</option>
+            <option value="Baixa">Baixa</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Equipamento *</label>
+          <input type="text" id="fEquipamento" class="input" required placeholder="Ex: Notebook Dell Latitude" />
+        </div>
+        <div class="form-field">
+          <label>Patrimônio</label>
+          <input type="text" id="fPatrimonio" class="input" placeholder="Ex: PAT-4510" />
+        </div>
+        <div class="form-field">
+          <label>Setor / Solicitante *</label>
+          <input type="text" id="fSetor" class="input" required placeholder="Ex: Financeiro (Ana)" />
+        </div>
+        <div class="form-field">
+          <label>📱 WhatsApp p/ Aviso (DDD + Número)</label>
+          <input type="text" id="fTelefone" class="input" placeholder="Ex: 11999998888" />
+        </div>
+        <div class="form-field full">
+          <label>👨‍💻 Técnico Responsável</label>
+          <input type="text" id="fTecnico" class="input" placeholder="Ex: Carlos (TI)" />
+        </div>
+        <div class="form-field full">
+          <label>Descrição / Defeito Relatado</label>
+          <input type="text" id="fDescricao" class="input" placeholder="Ex: Fazer backup de 15GB e formatar com Win11 + Office" />
+        </div>
+        <div class="form-field full">
+          <label>Laudo Técnico / Peças Utilizadas</label>
+          <input type="text" id="fObs" class="input" placeholder="Ex: Sistema instalado em SSD NVMe, pasta térmica trocada." />
+        </div>
+        <div class="form-field full" style="display:flex;justify-content:flex-end;gap:8px;flex-direction:row;margin-top:6px;">
+          <button type="button" class="btn" onclick="closeTaskModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">💾 Salvar & Notificar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="printReceiptArea"></div>
+
+  <script>
+    const STORAGE_KEY = 'techbot_os_db_v3';
+    const CHECKLIST_LABELS = {
+      backup: '💾 Backup de Dados',
+      sistemaDrivers: '💿 Windows + Drivers',
+      officeProgramas: '📄 Office + Programas',
+      antivirusRede: '🛡️ Antivírus + Rede',
+      limpezaFisica: '🧹 Limpeza / Pasta Térmica'
+    };
+
+    const INITIAL = {
+      lastId: 104,
+      tasks: [
+        {
+          id: 101, codigo: 'OS-101', tipo: 'Formatação',
+          equipamento: 'Notebook Dell Latitude 5420', patrimonio: 'PAT-4092',
+          setor: 'Financeiro (Ana Paula)', telefone: '', tecnico: 'Carlos (TI)',
+          prioridade: 'Alta', status: 'Em Bancada',
+          descricao: 'Formatação limpa Win11 Pro, Office e backup de 18GB.',
+          observacaoTecnica: 'Backup concluído no servidor. Instalando drivers.',
+          checklist: { backup: true, sistemaDrivers: true, officeProgramas: false, antivirusRede: false, limpezaFisica: true }
+        },
+        {
+          id: 102, codigo: 'OS-102', tipo: 'Manutenção Preventiva',
+          equipamento: 'Desktop HP ProDesk 400 G6', patrimonio: 'PAT-1180',
+          setor: 'Recepção Principal', telefone: '', tecnico: 'A definir',
+          prioridade: 'Média', status: 'Pendente',
+          descricao: 'Cooler fazendo barulho e desligando. Limpeza e pasta térmica.',
+          observacaoTecnica: 'Aguardando vaga na bancada.',
+          checklist: { backup: false, sistemaDrivers: false, officeProgramas: false, antivirusRede: false, limpezaFisica: false }
+        }
+      ]
+    };
+
+    let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(INITIAL));
+    let session = { step: null, draft: {} };
+    let apiOnline = false;
+
+    function defaultChecklist() {
+      return { backup: false, sistemaDrivers: false, officeProgramas: false, antivirusRede: false, limpezaFisica: false };
+    }
+
+    // Sincroniza com o servidor Node.js se estiver rodando em http://localhost:3000
+    async function loadFromServer() {
+      try {
+        const res = await fetch('/api/tasks');
+        if (res.ok) {
+          const tasks = await res.json();
+          apiOnline = true;
+          db.tasks = tasks;
+          db.lastId = tasks.reduce((max, t) => Math.max(max, Number(t.id) || 100), 100);
+          document.getElementById('serverSyncBadge').textContent = '🟢 Conectado ao WhatsApp Real (Servidor Ativo)';
+          renderBoard();
+        }
+      } catch (e) {
+        apiOnline = false;
+      }
+    }
+
+    function saveDb() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      renderBoard();
+    }
+
+    function buildWhatsAppNotificationText(t, motivo = 'atualização') {
+      const emojiStatus = t.status === 'Concluído' ? '✅' : t.status === 'Em Bancada' ? '🔧' : t.status === 'Aguardando Peça' ? '📦' : '⏳';
+      let header = `🔔 *AVISO DE CHAMADO / MANUTENÇÃO TI*`;
+      if (motivo === 'abertura') header = `🆕 *CHAMADO ABERTO NA TI (${t.codigo})*`;
+      if (t.status === 'Concluído') header = `🎉 *EQUIPAMENTO PRONTO PARA RETIRADA (${t.codigo})*`;
+
+      return (
+        `${header}\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `🆔 *Ordem de Serviço:* ${t.codigo}\n` +
+        `🔧 *Serviço:* ${t.tipo}\n` +
+        `💻 *Equipamento:* ${t.equipamento} (${t.patrimonio})\n` +
+        `📍 *Setor/Solicitante:* ${t.setor}\n` +
+        `👨‍💻 *Técnico:* ${t.tecnico || 'Equipe TI'}\n` +
+        `${emojiStatus} *Status Atual:* *${t.status}*\n` +
+        (t.descricao ? `📝 *Solicitação:* ${t.descricao}\n` : '') +
+        (t.observacaoTecnica ? `🛠️ *Laudo Técnico:* ${t.observacaoTecnica}\n` : '') +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Mensagem automática do Sistema de Bancada TI._`
+      );
+    }
+
+    async function sendRealWhatsAppNotification(phone, messageText) {
+      const cleanPhone = String(phone || '').replace(/\D/g, '');
+      if (!cleanPhone) return false;
+      try {
+        const res = await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: cleanPhone, message: messageText })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          addMsg('bot', `📲 *WhatsApp enviado com sucesso para ${cleanPhone}!*\n\n${messageText}`);
+          return true;
+        } else {
+          addMsg('bot', `⚠️ *Aviso:* O servidor tentou enviar para ${cleanPhone}, mas retornou: ${data.error || 'Verifique o número'}.`);
+          return false;
+        }
+      } catch (e) {
+        // Fallback: abre o WhatsApp Web se o servidor Node não estiver acessível
+        window.open(`https://wa.me/55${cleanPhone.replace(/^55/, '')}?text=${encodeURIComponent(messageText)}`, '_blank');
+        return true;
+      }
+    }
+
+    async function notifyTaskById(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      let fone = t.telefone || '';
+      fone = prompt(`Digite o WhatsApp (DDD + Número) para enviar o aviso da ${t.codigo} (${t.equipamento}):`, fone || '11999998888');
+      if (!fone) return;
+      t.telefone = fone.replace(/\D/g, '');
+      if (apiOnline) {
+        await fetch(`/api/tasks/${t.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telefone: t.telefone })
+        });
+      }
+      saveDb();
+      const msg = buildWhatsAppNotificationText(t, 'manual');
+      await sendRealWhatsAppNotification(t.telefone, msg);
+    }
+
+    function findTask(term) {
+      const c = String(term || '').trim().toUpperCase();
+      const n = c.replace(/[^0-9]/g, '');
+      return db.tasks.find(t => t.codigo === c || String(t.id) === c || (n && String(t.id) === n) || (t.patrimonio && t.patrimonio.toUpperCase() === c));
+    }
+
+    function updateTechnicianFilterOptions() {
+      const sel = document.getElementById('filterTecnico');
+      const current = sel.value;
+      const tecnicos = [...new Set(db.tasks.map(t => t.tecnico || 'A definir'))];
+      sel.innerHTML = `<option value="">👨‍💻 Todos os Técnicos</option>` +
+        tecnicos.map(tec => `<option value="${tec}" ${tec === current ? 'selected' : ''}>👨‍💻 ${tec}</option>`).join('');
+    }
+
+    function renderBoard() {
+      updateTechnicianFilterOptions();
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      const tipo = document.getElementById('filterTipo').value;
+      const tec = document.getElementById('filterTecnico').value;
+
+      const cols = {
+        'Pendente': document.getElementById('colPendente'),
+        'Em Bancada': document.getElementById('colBancada'),
+        'Aguardando Peça': document.getElementById('colPeca'),
+        'Concluído': document.getElementById('colConcluido')
+      };
+      Object.values(cols).forEach(c => c.innerHTML = '');
+      const counts = { 'Pendente': 0, 'Em Bancada': 0, 'Aguardando Peça': 0, 'Concluído': 0 };
+
+      db.tasks.filter(t => {
+        if (tipo && t.tipo !== tipo) return false;
+        if (tec && (t.tecnico || 'A definir') !== tec) return false;
+        if (q && !`${t.codigo} ${t.equipamento} ${t.patrimonio} ${t.setor} ${t.tecnico}`.toLowerCase().includes(q)) return false;
+        return true;
+      }).forEach(t => {
+        if (!t.checklist) t.checklist = defaultChecklist();
+        const keys = Object.keys(CHECKLIST_LABELS);
+        const doneCount = keys.filter(k => t.checklist[k]).length;
+        const pct = Math.round((doneCount / keys.length) * 100);
+
+        counts[t.status] = (counts[t.status] || 0) + 1;
+        const el = document.createElement('div');
+        el.className = 'task-card';
+        el.innerHTML = `
+          <div class="task-top"><span class="os-code">${t.codigo}</span><span class="badge prio-${t.prioridade}">${t.prioridade}</span></div>
+          <div class="task-type">🔧 ${t.tipo}</div>
+          <div class="task-title">${t.equipamento}</div>
+          <div class="task-meta">
+            <span>🏷️ Patrimônio: <strong>${t.patrimonio}</strong></span>
+            <span>📍 Setor: ${t.setor}</span>
+            <span>👨‍💻 Técnico: <strong>${t.tecnico || 'A definir'}</strong></span>
+            ${t.telefone ? `<span>📱 WhatsApp: <strong>${t.telefone}</strong></span>` : ''}
+          </div>
+          ${t.descricao ? `<div class="task-desc">${t.descricao}</div>` : ''}
+          ${t.observacaoTecnica ? `<div class="task-desc" style="border-left:3px solid #38bdf8;">🛠️ ${t.observacaoTecnica}</div>` : ''}
+          <div class="checklist-box">
+            <div class="checklist-header"><span>Checklist Bancada</span><span>${doneCount}/${keys.length} (${pct}%)</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            ${keys.map(k => `
+              <label class="check-item ${t.checklist[k] ? 'done' : ''}">
+                <input type="checkbox" ${t.checklist[k] ? 'checked' : ''} onchange="toggleCheck(${t.id}, '${k}')" />
+                ${CHECKLIST_LABELS[k]}
+              </label>
+            `).join('')}
+          </div>
+          <div class="task-actions">
+            <select onchange="changeStatus(${t.id}, this.value)">
+              <option value="Pendente" ${t.status==='Pendente'?'selected':''}>⏳ Pendente</option>
+              <option value="Em Bancada" ${t.status==='Em Bancada'?'selected':''}>🔧 Em Bancada</option>
+              <option value="Aguardando Peça" ${t.status==='Aguardando Peça'?'selected':''}>📦 Aguard. Peça</option>
+              <option value="Concluído" ${t.status==='Concluído'?'selected':''}>✅ Concluído</option>
+            </select>
+            <button class="btn btn-sm btn-whatsapp" onclick="notifyTaskById(${t.id})" title="Avisar Cliente/Setor no WhatsApp">📲 Avisar</button>
+            <button class="btn btn-sm" onclick="editTask(${t.id})" title="Editar OS">✏️</button>
+            <button class="btn btn-sm" onclick="printReceipt(${t.id})" title="Imprimir Termo de Entrega / OS">🖨️</button>
+            <button class="btn btn-sm" onclick="removeTask(${t.id})" title="Excluir">🗑️</button>
+          </div>`;
+        if (cols[t.status]) cols[t.status].appendChild(el);
+      });
+
+      document.getElementById('countPendente').textContent = counts['Pendente'];
+      document.getElementById('countBancada').textContent = counts['Em Bancada'];
+      document.getElementById('countPeca').textContent = counts['Aguardando Peça'];
+      document.getElementById('countConcluido').textContent = counts['Concluído'];
+      document.getElementById('statTotal').textContent = db.tasks.length;
+      document.getElementById('statPendentes').textContent = db.tasks.filter(t=>t.status==='Pendente').length;
+      document.getElementById('statBancada').textContent = db.tasks.filter(t=>t.status==='Em Bancada').length;
+      document.getElementById('statPeca').textContent = db.tasks.filter(t=>t.status==='Aguardando Peça').length;
+      document.getElementById('statConcluidos').textContent = db.tasks.filter(t=>t.status==='Concluído').length;
+    }
+
+    async function toggleCheck(id, key) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      if (!t.checklist) t.checklist = defaultChecklist();
+      t.checklist[key] = !t.checklist[key];
+      if (apiOnline) {
+        await fetch(`/api/tasks/${t.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checklist: t.checklist })
+        });
+      }
+      saveDb();
+    }
+
+    async function changeStatus(id, st) {
+      const t = db.tasks.find(x => x.id === id);
+      if (t) {
+        t.status = st;
+        if (st === 'Concluído' && t.checklist) {
+          Object.keys(CHECKLIST_LABELS).forEach(k => t.checklist[k] = true);
+        }
+        if (apiOnline) {
+          await fetch(`/api/tasks/${t.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: t.status, checklist: t.checklist })
+          });
+        }
+        saveDb();
+        addMsg('bot', `🔔 *Painel Web:* ${t.codigo} (${t.equipamento}) movida para *${st}*.`);
+        if (t.telefone) {
+          await sendRealWhatsAppNotification(t.telefone, buildWhatsAppNotificationText(t, 'status'));
+        }
+      }
+    }
+
+    function removeTask(id) {
+      if (!confirm('Deseja excluir esta Ordem de Serviço?')) return;
+      db.tasks = db.tasks.filter(x => x.id !== id);
+      saveDb();
+    }
+
+    function openNewTaskModal() {
+      document.getElementById('editTaskId').value = '';
+      document.getElementById('modalTitle').textContent = 'Nova Ordem de Serviço';
+      document.getElementById('fEquipamento').value = '';
+      document.getElementById('fPatrimonio').value = '';
+      document.getElementById('fSetor').value = '';
+      document.getElementById('fTelefone').value = '';
+      document.getElementById('fTecnico').value = '';
+      document.getElementById('fDescricao').value = '';
+      document.getElementById('fObs').value = '';
+      document.getElementById('taskModal').classList.add('active');
+    }
+
+    function editTask(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('editTaskId').value = t.id;
+      document.getElementById('modalTitle').textContent = `Editar ${t.codigo}`;
+      document.getElementById('fTipo').value = t.tipo;
+      document.getElementById('fPrioridade').value = t.prioridade;
+      document.getElementById('fEquipamento').value = t.equipamento;
+      document.getElementById('fPatrimonio').value = t.patrimonio;
+      document.getElementById('fSetor').value = t.setor;
+      document.getElementById('fTelefone').value = t.telefone || '';
+      document.getElementById('fTecnico').value = t.tecnico || '';
+      document.getElementById('fDescricao').value = t.descricao || '';
+      document.getElementById('fObs').value = t.observacaoTecnica || '';
+      document.getElementById('taskModal').classList.add('active');
+    }
+
+    function closeTaskModal() { document.getElementById('taskModal').classList.remove('active'); }
+
+    async function saveTaskFromModal(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editTaskId').value;
+      const payload = {
+        tipo: document.getElementById('fTipo').value,
+        prioridade: document.getElementById('fPrioridade').value,
+        equipamento: document.getElementById('fEquipamento').value,
+        patrimonio: (document.getElementById('fPatrimonio').value || 'S/PAT').toUpperCase(),
+        setor: document.getElementById('fSetor').value,
+        telefone: (document.getElementById('fTelefone').value || '').replace(/\D/g, ''),
+        tecnico: document.getElementById('fTecnico').value || 'A definir',
+        descricao: document.getElementById('fDescricao').value,
+        observacaoTecnica: document.getElementById('fObs').value
+      };
+
+      if (editId) {
+        const idx = db.tasks.findIndex(x => String(x.id) === String(editId));
+        if (idx !== -1) {
+          db.tasks[idx] = { ...db.tasks[idx], ...payload };
+          if (apiOnline) {
+            await fetch(`/api/tasks/${editId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          }
+        }
+      } else {
+        let nova;
+        if (apiOnline) {
+          const res = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, status: 'Pendente', origem: 'Painel Web' })
+          });
+          nova = await res.json();
+          db.tasks.unshift(nova);
+        } else {
+          db.lastId++;
+          nova = {
+            id: db.lastId, codigo: `OS-${db.lastId}`,
+            ...payload,
+            checklist: defaultChecklist(),
+            status: 'Pendente',
+            criadoEm: new Date().toLocaleDateString('pt-BR'),
+            origem: 'Painel Web'
+          };
+          db.tasks.unshift(nova);
+        }
+
+        addMsg('bot', `🆕 *Nova ${nova.codigo} criada:*\n[${nova.tipo}] ${nova.equipamento} (${nova.patrimonio})\n📍 Setor: ${nova.setor} | 👨‍💻 Técnico: ${nova.tecnico}`);
+        if (nova.telefone) {
+          await sendRealWhatsAppNotification(nova.telefone, buildWhatsAppNotificationText(nova, 'abertura'));
+        }
+      }
+      saveDb();
+      closeTaskModal();
+    }
+
+    function printReceipt(id) {
+      const t = db.tasks.find(x => x.id === id);
+      if (!t) return;
+      const cl = t.checklist || defaultChecklist();
+      const area = document.getElementById('printReceiptArea');
+      area.innerHTML = `
+        <div style="border:2px solid #000; padding:20px;">
+          <div style="display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px;">
+            <div>
+              <h2 style="margin:0;">COMPROVANTE DE MANUTENÇÃO & ENTREGA DE EQUIPAMENTO</h2>
+              <p style="margin:4px 0 0 0;font-size:13px;">Setor de Tecnologia da Informação (TI) — Controle de Bancada</p>
+            </div>
+            <div style="text-align:right;">
+              <h2 style="margin:0;">${t.codigo}</h2>
+              <p style="margin:4px 0 0 0;font-size:12px;">Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:14px;">
+            <tr>
+              <td style="padding:6px;border:1px solid #999;"><strong>Equipamento:</strong> ${t.equipamento}</td>
+              <td style="padding:6px;border:1px solid #999;"><strong>Patrimônio:</strong> ${t.patrimonio}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;border:1px solid #999;"><strong>Tipo de Serviço:</strong> ${t.tipo}</td>
+              <td style="padding:6px;border:1px solid #999;"><strong>Status Atual:</strong> ${t.status}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;border:1px solid #999;"><strong>Setor / Solicitante:</strong> ${t.setor}</td>
+              <td style="padding:6px;border:1px solid #999;"><strong>Técnico Responsável:</strong> ${t.tecnico || 'A definir'}</td>
+            </tr>
+          </table>
+          <h4 style="margin-bottom:6px;">1. Solicitação / Defeito Relatado:</h4>
+          <p style="border:1px solid #999;padding:10px;min-height:45px;margin-bottom:14px;font-size:13px;">${t.descricao || 'Não informado.'}</p>
+          <h4 style="margin-bottom:6px;">2. Checklist de Procedimentos Executados na Bancada:</h4>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;">
+            ${Object.keys(CHECKLIST_LABELS).map(k => `
+              <tr>
+                <td style="padding:5px 8px;border:1px solid #999;width:40px;text-align:center;font-weight:bold;">
+                  [${cl[k] ? ' X ' : '   '}]
+                </td>
+                <td style="padding:5px 8px;border:1px solid #999;">${CHECKLIST_LABELS[k]}</td>
+              </tr>
+            `).join('')}
+          </table>
+          <h4 style="margin-bottom:6px;">3. Laudo Técnico / Observações de Entrega:</h4>
+          <p style="border:1px solid #999;padding:10px;min-height:55px;margin-bottom:28px;font-size:13px;">${t.observacaoTecnica || 'Equipamento testado e liberado para uso.'}</p>
+          <div style="display:flex;justify-content:space-between;margin-top:45px;gap:40px;text-align:center;font-size:13px;">
+            <div style="flex:1;border-top:1px solid #000;padding-top:6px;">
+              Assinatura do Técnico Responsável<br/><strong>${t.tecnico || 'Setor de TI'}</strong>
+            </div>
+            <div style="flex:1;border-top:1px solid #000;padding-top:6px;">
+              Recebido por (Setor / Usuário)<br/><strong>${t.setor}</strong>
+            </div>
+          </div>
+        </div>
+      `;
+      window.print();
+    }
+
+    function addMsg(who, text) {
+      const box = document.getElementById('waMessages');
+      const d = document.createElement('div');
+      d.className = `msg msg-${who}`;
+      d.textContent = text;
+      box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearChat() {
+      document.getElementById('waMessages').innerHTML = '';
+      session = { step: null, draft: {} };
+      addMsg('bot', menuText());
+    }
+
+    function triggerBotCommand(cmd) {
+      addMsg('user', cmd);
+      setTimeout(() => addMsg('bot', replyBot(cmd)), 150);
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const inp = document.getElementById('waInput');
+      if (!inp.value.trim()) return;
+      const v = inp.value.trim();
+      inp.value = '';
+      triggerBotCommand(v);
+    }
+
+    function menuText() {
+      return (
+        `🤖 *BOT DE MANUTENÇÃO & FORMATAÇÃO TI*\n` +
+        `*1* - ➕ Abrir Nova OS\n` +
+        `*2* - ⏳ Listar Fila do Dia\n` +
+        `*3* - 🔍 Consultar OS ou Patrimônio\n` +
+        `*4* - 🔄 Atualizar Status\n` +
+        `*5* - 📊 Resumo Diário\n` +
+        `*6* - ⏰ Lembrete de Pendências\n\n` +
+        `📲 *Notificar alguém no WhatsApp:*\n` +
+        `• */avisar 101 11999998888*\n` +
+        `• */assumir 102 Carlos*\n` +
+        `• */check 101*\n` +
+        `• */concluir 101 Formatado com Win11*`
+      );
+    }
+
+    function replyBot(raw) {
+      const msg = raw.trim();
+      const low = msg.toLowerCase();
+      if (['menu','oi','ola','olá','ajuda'].includes(low)) { session = { step: null, draft: {} }; return menuText(); }
+
+      if (low.startsWith('/avisar ')) {
+        const parts = msg.substring(8).trim().split(' ');
+        const term = parts.shift();
+        const fone = parts.join('').replace(/\D/g, '');
+        const t = findTask(term);
+        if (!t) return `⚠️ OS "${term}" não encontrada.`;
+        const targetPhone = fone || t.telefone;
+        if (!targetPhone) return `⚠️ Informe o DDD + Número. Ex: */avisar ${t.id} 11999998888*`;
+        t.telefone = targetPhone;
+        saveDb();
+        sendRealWhatsAppNotification(targetPhone, buildWhatsAppNotificationText(t, 'manual'));
+        return `📤 Disparando notificação da *${t.codigo}* para o WhatsApp *${targetPhone}*...`;
+      }
+
+      if (low.startsWith('/assumir ')) {
+        const parts = msg.substring(9).trim().split(' ');
+        const term = parts.shift();
+        const nomeTec = parts.join(' ') || 'Técnico TI';
+        const t = findTask(term);
+        if (!t) return `⚠️ OS "${term}" não encontrada.`;
+        t.tecnico = nomeTec;
+        t.status = 'Em Bancada';
+        saveDb();
+        return `👨‍💻 *${t.codigo}* (${t.equipamento}) assumida por *${nomeTec}* e movida para *Em Bancada*!`;
+      }
+
+      if (low.startsWith('/check ')) {
+        const term = msg.substring(7).trim();
+        const t = findTask(term);
+        if (!t) return `⚠️ OS "${term}" não encontrada.`;
+        t.checklist = { backup: true, sistemaDrivers: true, officeProgramas: true, antivirusRede: true, limpezaFisica: true };
+        saveDb();
+        return `☑️ Checklist completo marcado como *100% concluído* na *${t.codigo}*!`;
+      }
+
+      if (low.startsWith('/concluir ')) {
+        const rest = msg.substring(10).trim();
+        const sp = rest.indexOf(' ');
+        const term = sp === -1 ? rest : rest.substring(0, sp);
+        const laudo = sp === -1 ? '' : rest.substring(sp + 1).trim();
+        const t = findTask(term);
+        if (!t) return `⚠️ OS não encontrada.`;
+        t.status = 'Concluído';
+        if (laudo) t.observacaoTecnica = laudo;
+        t.checklist = { backup: true, sistemaDrivers: true, officeProgramas: true, antivirusRede: true, limpezaFisica: true };
+        saveDb();
+        if (t.telefone) sendRealWhatsAppNotification(t.telefone, buildWhatsAppNotificationText(t, 'conclusao'));
+        return `✅ *${t.codigo}* (${t.equipamento}) marcada como *Concluído*!`;
+      }
+
+      if (msg === '2') {
+        const abertas = db.tasks.filter(t => t.status !== 'Concluído');
+        if (!abertas.length) return `🎉 Nenhuma tarefa pendente!`;
+        return `📋 *FILA ATUAL (${abertas.length}):*\n\n` + abertas.map(t => `• *${t.codigo}* [${t.status}] - ${t.tipo}: ${t.equipamento} (${t.patrimonio}) — 👨‍💻 _${t.tecnico || 'A definir'}_`).join('\n');
+      }
+      if (msg === '5') {
+        const p = db.tasks.filter(t=>t.status==='Pendente').length;
+        const b = db.tasks.filter(t=>t.status==='Em Bancada').length;
+        const c = db.tasks.filter(t=>t.status==='Concluído');
+        return `📊 *RESUMO DO DIA - TI*\n⏳ Pendentes: ${p}\n🔧 Em Bancada: ${b}\n✅ Concluídos: ${c.length}\n\n` +
+               (c.length ? `*Prontos p/ entrega:*\n` + c.map(t=>`• ${t.codigo} - ${t.equipamento} (${t.setor})`).join('\n') : '');
+      }
+      if (msg === '6') {
+        const ab = db.tasks.filter(t=>t.status!=='Concluído');
+        return ab.length ? `⏰ *LEMBRETE DE BANCADA:*\nHá *${ab.length}* equipamentos aguardando conclusão:\n` + ab.map(t=>`• *${t.codigo}* (${t.prioridade}) - ${t.equipamento} [${t.status}]`).join('\n') : `🎉 Tudo concluído!`;
+      }
+      return menuText();
+    }
+
+    renderBoard();
+    addMsg('bot', menuText());
+    loadFromServer();
+    setInterval(loadFromServer, 5000);
+  </script>
+</body>
+</html>

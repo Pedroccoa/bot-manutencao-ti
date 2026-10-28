@@ -1,0 +1,12 @@
+# Dependências Node.js e Puppeteer
+node_modules/
+npm-debug.log*
+
+# Sessão e cache do WhatsApp Web (NÃO subir para o Git por segurança!)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Arquivos de ambiente e sistema
+.env
+.DS_Store
+Thumbs.db

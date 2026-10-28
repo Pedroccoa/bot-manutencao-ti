@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "TechBot - Capturador de Números de Chamados",
+  "version": "1.1.0",
+  "description": "Captura automaticamente os números de chamados que chegam na tela do sistema e envia para o Bot do WhatsApp.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:3000/*", "http://127.0.0.1:3000/*", "<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
