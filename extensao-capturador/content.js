@@ -1,4 +1,16 @@
 (function () {
+  // Executa SOMENTE no sistema CAPRI (verifica URL e Título da página)
+  function isCapriPage() {
+    const url = (window.location.href || '').toLowerCase();
+    const title = (document.title || '').toLowerCase();
+    return (
+      url.includes('capri') ||
+      title.includes('capri') ||
+      title.includes('central de atendimento prodasen integrado')
+    );
+  }
+
+  if (!isCapriPage()) return;
   if (document.getElementById('techbot-ticket-capturer')) return;
 
   let timer = null;
@@ -8,6 +20,13 @@
   if (localStorage.getItem('tb_auto_enabled') === null) {
     localStorage.setItem('tb_auto_enabled', 'true');
   }
+  if (!localStorage.getItem('tb_server_url')) {
+    localStorage.setItem('tb_server_url', 'http://localhost:3000');
+  }
+
+  function getServerUrl() {
+    return (localStorage.getItem('tb_server_url') || 'http://localhost:3000').replace(/\/+$/, '');
+  }
 
   const box = document.createElement('div');
   box.id = 'techbot-ticket-capturer';
@@ -15,10 +34,23 @@
 
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <strong style="color:#4ade80;font-size:13px;">🤖 TechBot — Auto Fila & Técnico</strong>
-      <button id="tb-min-btn" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;font-weight:bold;">−</button>
+      <strong style="color:#4ade80;font-size:13px;">🤖 TechBot CAPRI — Auto Fila & Técnico</strong>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="tb-cfg-btn" title="Configurar IP do Servidor" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;">⚙️ Servidor</button>
+        <button id="tb-min-btn" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;font-weight:bold;">−</button>
+      </div>
     </div>
     <div id="tb-body">
+      <div id="tb-server-form" style="display:none;background:#1e293b;border:1px solid #3b82f6;border-radius:8px;padding:8px;margin-bottom:8px;">
+        <div style="font-weight:bold;color:#93c5fd;margin-bottom:4px;font-size:11px;">🌐 Endereço do Servidor do Bot</div>
+        <div style="color:#94a3b8;font-size:10px;margin-bottom:5px;">No PC principal use <code>http://localhost:3000</code>. Em outros PCs use o IP da máquina principal (ex: <code>http://10.0.0.25:3000</code>):</div>
+        <div style="display:flex;gap:5px;">
+          <input id="tb-server-input" type="text" value="${getServerUrl()}"
+            style="flex:1;padding:5px 7px;border-radius:5px;border:1px solid #475569;background:#0f172a;color:#fff;font-size:11px;" />
+          <button id="tb-save-server" style="padding:4px 10px;border:none;border-radius:5px;background:#25d366;color:#052e16;font-weight:bold;font-size:11px;cursor:pointer;">Salvar</button>
+        </div>
+      </div>
+
       <div style="margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
           <label style="color:#94a3b8;font-size:11px;">👨‍💻 Modo de Atribuição / Técnicos:</label>
@@ -67,10 +99,24 @@
   const selectEl = document.getElementById('tb-tecnico-select');
   const autoBtn = document.getElementById('tb-toggle-auto');
   const addFormEl = document.getElementById('tb-add-tec-form');
+  const serverFormEl = document.getElementById('tb-server-form');
 
   document.getElementById('tb-min-btn').onclick = () => {
     const b = document.getElementById('tb-body');
     b.style.display = b.style.display === 'none' ? 'block' : 'none';
+  };
+
+  document.getElementById('tb-cfg-btn').onclick = () => {
+    serverFormEl.style.display = serverFormEl.style.display === 'none' ? 'block' : 'none';
+  };
+
+  document.getElementById('tb-save-server').onclick = async () => {
+    const val = (document.getElementById('tb-server-input').value || '').trim().replace(/\/+$/, '') || 'http://localhost:3000';
+    localStorage.setItem('tb_server_url', val);
+    serverFormEl.style.display = 'none';
+    statusEl.innerHTML = `<span style="color:#4ade80;">🌐 Servidor atualizado para <strong>${val}</strong>. Conectando...</span>`;
+    await loadTecnicos();
+    await scanAndSend(false, null);
   };
 
   document.getElementById('tb-toggle-add-tec').onclick = () => {
@@ -98,7 +144,6 @@
       return null;
     }
 
-    // 1. Nome completo contido no texto
     for (const tec of tecnicosList) {
       const nTec = normalizeStr(tec.nome);
       if (!nTec) continue;
@@ -107,7 +152,6 @@
       }
     }
 
-    // 2. Pelo menos 2 partes do nome (ex: "Pedro Gabriel" ou "Lucas Gualberto")
     const targetTokens = target.split(/[^a-z0-9]+/).filter(w => w.length >= 2 && !STOP_WORDS.has(w));
     if (targetTokens.length === 0) return null;
 
@@ -131,12 +175,13 @@
   }
 
   function callBg(action, extra = {}) {
+    const serverUrl = getServerUrl();
     return new Promise((resolve, reject) => {
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-        chrome.runtime.sendMessage({ action, ...extra }, (res) => {
+        chrome.runtime.sendMessage({ action, serverUrl, ...extra }, (res) => {
           if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
           if (res && res.ok) return resolve(res.data);
-          reject(new Error((res && res.error) || 'Erro na comunicação com localhost:3000'));
+          reject(new Error((res && res.error) || `Erro na comunicação com ${serverUrl}`));
         });
       } else {
         reject(new Error('Recarregue a extensão em chrome://extensions'));
@@ -157,7 +202,7 @@
 
       selectEl.innerHTML = autoOption + tecOptions;
     } catch (err) {
-      selectEl.innerHTML = '<option value="AUTO">⚠️ Servidor localhost:3000 offline</option>';
+      selectEl.innerHTML = `<option value="AUTO">⚠️ Servidor (${getServerUrl()}) offline</option>`;
     }
   }
 
@@ -218,7 +263,6 @@
     return chosen;
   }
 
-  // Busca campos do tipo <label>Fila:</label> <p class="Value">...</p> no CAPRI / OTRS / GLPI
   function extractFieldByLabel(root, labelRegex) {
     if (!root) return '';
     const labels = root.querySelectorAll('label, dt, th, strong, span.Key, .Label');
@@ -243,15 +287,12 @@
     return '';
   }
 
-  // Detecta o nome da fila ativa na página (quando está na Visão de Filas ou Detalhes do Chamado)
   function detectPageQueueName() {
-    // 1. Campo "Fila:" explícito na tela (ex: Detalhes do Chamado / AgentTicketZoom)
     const fromLabel = extractFieldByLabel(document, /^(fila|queue|setor)\s*:?$/i);
     if (fromLabel) {
       return fromLabel.replace(/\s*\(\d+\)\s*$/, '').trim();
     }
 
-    // 2. Aba de Fila selecionada na Visão de Filas do OTRS/CAPRI
     const activeTabSelectors = [
       '.QueueOverview a.Selected',
       '.QueueOverview .Selected a',
@@ -265,7 +306,6 @@
       if (!el) continue;
       const raw = getBestElementText(el);
       if (!raw) continue;
-      // Ignora h1 de detalhes de chamado que começa com Chamado#
       if (/^Chamado\s*#/i.test(raw)) continue;
       const cleaned = raw
         .replace(/^Vis[aã]o de Filas\s*[:\-–—]\s*/i, '')
@@ -277,7 +317,6 @@
       }
     }
 
-    // 3. Limpa o título da página se tiver nome de fila
     const docTitle = (document.title || '')
       .replace(/^\d+\s*[-–—]\s*Detalhes\s*[-–—]\s*/i, '')
       .replace(/\s*[-–—]\s*Chamado\s*[-–—]\s*CAPRI.*$/i, '')
@@ -287,7 +326,6 @@
     return docTitle && !/^Fila$/i.test(docTitle) ? docTitle : '';
   }
 
-  // Detecta o técnico responsável na página de Detalhes do Chamado
   function detectPageTecnicoName() {
     const fromLabel = extractFieldByLabel(
       document,
@@ -296,14 +334,12 @@
     if (fromLabel) {
       const matched = matchRegisteredTecnico(fromLabel);
       if (matched) return matched.nome;
-      // Limpa sufixos de login ex: "Pedro Gabriel do Carmo (pedro.carmo)"
       const clean = fromLabel.replace(/\s*\([^)]*\)\s*$/, '').trim();
       if (clean && !/^(root@localhost|admin|-|a definir)$/i.test(clean)) {
         return clean;
       }
     }
 
-    // Procura nos elementos de valor da barra lateral se algum técnico cadastrado aparece
     const sidebarEls = document.querySelectorAll('.SidebarColumn p.Value, .SidebarColumn td, .WidgetSimple p.Value, fieldset.TableLike p.Value');
     for (const el of sidebarEls) {
       const txt = getBestElementText(el);
@@ -314,7 +350,6 @@
     return '';
   }
 
-  // Descobre os índices das colunas da tabela (Fila, Proprietário/Técnico, Título/Assunto)
   function analyzeTableColumns(table) {
     const map = { filaIdx: -1, tecnicoIdx: -1, tituloIdx: -1 };
     if (!table) return map;
@@ -342,7 +377,6 @@
     return map;
   }
 
-  // Extrai Assunto, Fila e Técnico da linha <tr> do chamado
   function extractRowMetadata(el, numero, pageFila, pageTecnico) {
     let assunto = '';
     let fila = '';
@@ -357,7 +391,6 @@
     const colMap = analyzeTableColumns(table);
     const cells = Array.from(row.querySelectorAll('td'));
 
-    // 1. Extração pelas colunas identificadas no cabeçalho <th> da tabela
     if (cells.length > 0) {
       if (colMap.tituloIdx >= 0 && cells[colMap.tituloIdx]) {
         const val = getBestElementText(cells[colMap.tituloIdx]);
@@ -373,7 +406,6 @@
       }
     }
 
-    // 2. Seletores específicos por classe (OTRS / Znuny / GLPI)
     if (!assunto) {
       const titleCell = row.querySelector('td.Title, td.Subject, .Title, [class*="Title"], [class*="assunto" i], [class*="subject" i]');
       if (titleCell) {
@@ -404,7 +436,6 @@
       }
     }
 
-    // 3. Verifica em todas as células da linha se o nome de algum técnico cadastrado aparece
     const matchedInTecnicoField = matchRegisteredTecnico(tecnico);
     if (matchedInTecnicoField) {
       tecnico = matchedInTecnicoField.nome;
@@ -417,7 +448,6 @@
           break;
         }
       }
-      // Se ainda não bateu com cadastrado, limpa sufixo de login do campo extraído
       if (tecnico) {
         tecnico = tecnico.replace(/\s*\([^)]*\)\s*$/, '').trim();
         if (/^(root@localhost|admin|-|a definir)$/i.test(tecnico)) {
@@ -426,7 +456,6 @@
       }
     }
 
-    // 4. Fallback para o assunto (procura célula descritiva na linha)
     if (!assunto) {
       const titledEls = row.querySelectorAll('[title]');
       for (const tEl of titledEls) {
@@ -469,7 +498,6 @@
     const pageTecnico = detectPageTecnicoName();
     const fullText = document.body ? document.body.innerText : '';
 
-    // 1. Cabeçalho de página de detalhes: "Chamado#2026102810000657 — Retirar o equipamento do domínio senado."
     const regexChamadoCompleto = /Chamado\s*#?\s*(\d{8,22})\s*[—\-–:]\s*([^\r\n]+)/gi;
     let match;
     while ((match = regexChamadoCompleto.exec(fullText)) !== null) {
@@ -485,7 +513,6 @@
       }
     }
 
-    // 2. Elementos DOM em tabelas / listas de chamados
     const allElements = document.querySelectorAll('a, td, span, div, h1, h2, h3');
     allElements.forEach(el => {
       if (el.closest('#techbot-ticket-capturer')) return;
@@ -590,7 +617,7 @@
         };
       });
     } catch (err) {
-      statusEl.innerHTML = `<span style="color:#f87171;">❌ Erro: ${err.message}</span>`;
+      statusEl.innerHTML = `<span style="color:#f87171;">❌ Erro: ${err.message} (Verifique em ⚙️ Servidor)</span>`;
     }
   }
 
@@ -621,7 +648,6 @@
     }
   };
 
-  // Observa mudanças na tabela do CAPRI (ex: troca de fila ou atualização AJAX) para disparar automaticamente
   const observer = new MutationObserver(() => {
     if (localStorage.getItem('tb_auto_enabled') !== 'true') return;
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -630,7 +656,6 @@
     }, 1500);
   });
 
-  // Inicialização automática ao abrir qualquer página do sistema de chamados
   (async function init() {
     await loadTecnicos();
     await scanAndSend(false, null);

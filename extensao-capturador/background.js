@@ -1,5 +1,5 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  const baseUrl = 'http://localhost:3000';
+  const baseUrl = String(request.serverUrl || 'http://localhost:3000').replace(/\/+$/, '');
 
   if (request.action === 'IMPORT_TICKETS') {
     fetch(`${baseUrl}/api/import-tickets`, {

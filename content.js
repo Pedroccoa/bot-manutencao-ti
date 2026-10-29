@@ -1,4 +1,16 @@
 (function () {
+  // Executa SOMENTE no sistema CAPRI (verifica URL e Título da página)
+  function isCapriPage() {
+    const url = (window.location.href || '').toLowerCase();
+    const title = (document.title || '').toLowerCase();
+    return (
+      url.includes('capri') ||
+      title.includes('capri') ||
+      title.includes('central de atendimento prodasen integrado')
+    );
+  }
+
+  if (!isCapriPage()) return;
   if (document.getElementById('techbot-ticket-capturer')) return;
 
   let timer = null;
@@ -15,7 +27,7 @@
 
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <strong style="color:#4ade80;font-size:13px;">🤖 TechBot — Auto Fila & Técnico</strong>
+      <strong style="color:#4ade80;font-size:13px;">🤖 TechBot CAPRI — Auto Fila & Técnico</strong>
       <button id="tb-min-btn" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;font-weight:bold;">−</button>
     </div>
     <div id="tb-body">

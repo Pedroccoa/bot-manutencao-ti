@@ -495,8 +495,17 @@ client.on('message', async (message) => {
   }
 });
 
+const os = require('os');
 const PORT = 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Painel Web e Receptor de Chamados rodando em http://localhost:${PORT}`);
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        console.log(`🌐 Para outros PCs da rede usarem este Bot, configure em [⚙️ Servidor] na extensão: http://${net.address}:${PORT}`);
+      }
+    }
+  }
   client.initialize();
 });
